@@ -1,0 +1,120 @@
+
+> luxury-sdr-system@0.1.0 dev
+> next dev --turbopack
+
+ ⚠ Found lockfile missing swc dependencies, patching...
+ ⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
+ ⚠ Lockfile was successfully patched, please run "npm install" to ensure @next/swc dependencies are downloaded
+   ▲ Next.js 15.5.6 (Turbopack)
+   - Local:        http://localhost:3001
+   - Network:      http://169.254.0.21:3001
+
+ ✓ Starting...
+ ✓ Ready in 1742ms
+ ○ Compiling / ...
+ ✓ Compiled / in 15.8s
+ GET / 200 in 16858ms
+ ⚠ Cross origin request detected from luxury-sdr.lindy.site to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 638ms
+ GET /favicon.ico?favicon.bf3c9292.ico 200 in 988ms
+ ✓ Compiled /api/workflow in 236ms
+🚀 Starting full SDR workflow for client: client_demo_001
+📋 Step 1: Creating ICP & Strategy Playbook...
+📋 ICP Strategy Agent: Creating targeting playbook...
+✅ Playbook created with:
+   - 0 target industries
+   - 0 buyer personas
+   - 0 messaging angles
+📢 Notifications Agent: Sending Slack notification - ICP Playbook Created
+📤 Posting to Slack: {
+  "channel": "#sdr-alerts",
+  "attachments": [
+    {
+      "color": "#9c27b0",
+      "title": "ICP Playbook Created",
+      "text": "Targeting playbook created with 0 personas",
+      "footer": "Luxury SDR System",
+      "ts": 1770238132
+    }
+  ]
+}
+✅ Slack notification sent to #sdr-alerts
+🔍 Step 2: Sourcing leads from Instantly...
+🔍 Lead Source Agent: Building lead list from Instantly...
+📡 Querying Instantly API with filters: { industries: 0, countries: 0, titles: 0 }
+✅ Lead pool created with 50 leads
+📢 Notifications Agent: Sending Slack notification - Leads Sourced
+📤 Posting to Slack: {
+  "channel": "#sdr-alerts",
+  "attachments": [
+    {
+      "color": "#9c27b0",
+      "title": "Leads Sourced",
+      "text": "50 leads sourced from Instantly",
+      "footer": "Luxury SDR System",
+      "ts": 1770238132
+    }
+  ]
+}
+✅ Slack notification sent to #sdr-alerts
+💎 Step 3: Enriching and scoring leads...
+💎 Enrichment Agent: Enriching and scoring leads...
+✅ Enriched 50 leads
+   - Tier 1 (80-100): 39
+   - Tier 2 (60-79): 11
+   - Tier 3 (40-59): 0
+   - Tier 4 (0-39): 0
+📢 Notifications Agent: Sending Slack notification - Leads Enriched
+📤 Posting to Slack: {
+  "channel": "#sdr-alerts",
+  "attachments": [
+    {
+      "color": "#9c27b0",
+      "title": "Leads Enriched",
+      "text": "50 leads enriched and scored",
+      "footer": "Luxury SDR System",
+      "ts": 1770238132
+    }
+  ]
+}
+✅ Slack notification sent to #sdr-alerts
+📧 Step 4: Building and launching outbound sequences...
+📧 Outbound Sequencer Agent: Building and launching sequences...
+✅ Campaign launched with 50 leads
+   - Email sequence: 4 steps
+   - LinkedIn sequence: 2 steps
+📢 Notifications Agent: Sending Slack notification - Campaign Launched
+📤 Posting to Slack: {
+  "channel": "#sdr-alerts",
+  "attachments": [
+    {
+      "color": "#9c27b0",
+      "title": "Campaign Launched",
+      "text": "Outbound campaign launched with 50 leads",
+      "footer": "Luxury SDR System",
+      "ts": 1770238133
+    }
+  ]
+}
+✅ Slack notification sent to #sdr-alerts
+🔄 Steps 5-9: Starting continuous monitoring...
+✅ Workflow initialized successfully
+ POST /api/workflow 202 in 1465ms
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+ GET / 200 in 5278ms
+ GET / 200 in 2873ms
+ GET /favicon.ico?favicon.bf3c9292.ico 200 in 598ms
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+ GET / 200 in 364ms
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
