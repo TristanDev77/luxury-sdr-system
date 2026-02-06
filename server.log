@@ -12,7 +12,8 @@
  ✓ Starting...
  ✓ Ready in 1742ms
  ○ Compiling / ...
- ✓ Compiled / in 15.8s
+ ✓ Compiled /[?25h
+8s
  GET / 200 in 16858ms
  ⚠ Cross origin request detected from luxury-sdr.lindy.site to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
 Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
@@ -126,3 +127,7 @@ Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allow
 📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
 📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
 📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+📬 Reply Classifier Agent: Checking for new replies in campaign exec_1770238133861
+[?25h
