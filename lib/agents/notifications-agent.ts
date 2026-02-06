@@ -1,184 +1,229 @@
 /**
- * NOTIFICATIONS & ESCALATION AGENT
- * Sends Slack notifications for key events
- * Provides real-time alerts for high-signal events
+ * NOTIFICATIONS AGENT
+ * Sends alerts and notifications to Slack
+ * Manages notification routing and escalation
  */
 
-import { SlackNotification, NotificationEvent } from '../types';
+interface NotificationPayload {
+  type: 'lead_enriched' | 'positive_reply' | 'meeting_booked' | 'gaia_call' | 'error';
+  title: string;
+  message: string;
+  leadId?: string;
+  leadName?: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface SlackMessage {
+  channel: string;
+  text: string;
+  blocks?: unknown[];
+  attachments?: unknown[];
+}
 
 export class NotificationsAgent {
   private clientId: string;
-  private slackWebhookUrl: string = process.env.SLACK_WEBHOOK_URL || '';
-  private slackChannel: string = process.env.SLACK_CHANNEL || '#sdr-alerts';
+  private slackWebhookUrl: string;
 
-  constructor(clientId: string) {
+  constructor(clientId: string, slackWebhookUrl?: string) {
     this.clientId = clientId;
+    this.slackWebhookUrl = slackWebhookUrl || process.env.SLACK_WEBHOOK_URL || '';
   }
 
   /**
-   * Send Slack notification for key events
+   * Send notification based on event type
    */
-  async sendSlackNotification(notification: {
-    event: NotificationEvent;
-    title: string;
-    message: string;
-    leadId?: string;
-    campaignId?: string;
-    meetingId?: string;
-  }): Promise<SlackNotification> {
-    console.log(`📢 Notifications Agent: Sending Slack notification - ${notification.title}`);
+  async sendNotification(payload: NotificationPayload): Promise<void> {
+    console.log(`📢 Notifications Agent: Sending ${payload.type} notification...`);
+
+    // Route notification based on type
+    switch (payload.type) {
+      case 'lead_enriched':
+        await this.notifyLeadEnriched(payload);
+        break;
+      case 'positive_reply':
+        await this.notifyPositiveReply(payload);
+        break;
+      case 'meeting_booked':
+        await this.notifyMeetingBooked(payload);
+        break;
+      case 'gaia_call':
+        await this.notifyGaiaCall(payload);
+        break;
+      case 'error':
+        await this.notifyError(payload);
+        break;
+      default:
+        console.warn(`Unknown notification type: ${payload.type}`);
+    }
+
+    console.log(`✅ Notification sent`);
+  }
+
+  /**
+   * Notify when lead is enriched
+   */
+  private async notifyLeadEnriched(payload: NotificationPayload): Promise<void> {
+    const message: SlackMessage = {
+      channel: '#sdr-workflow',
+      text: `💎 Lead Enriched: ${payload.leadName}`,
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*Lead Enriched*\n${payload.message}`,
+          },
+        },
+      ],
+    };
+
+    await this.sendToSlack(message);
+  }
+
+  /**
+   * Notify when positive reply received
+   */
+  private async notifyPositiveReply(payload: NotificationPayload): Promise<void> {
+    const message: SlackMessage = {
+      channel: '#sdr-workflow',
+      text: `💬 Positive Reply: ${payload.leadName}`,
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*Positive Reply Received*\n${payload.message}`,
+          },
+        },
+      ],
+    };
+
+    await this.sendToSlack(message);
+  }
+
+  /**
+   * Notify when meeting is booked
+   */
+  private async notifyMeetingBooked(payload: NotificationPayload): Promise<void> {
+    const message: SlackMessage = {
+      channel: '#sdr-workflow',
+      text: `📅 Meeting Booked: ${payload.leadName}`,
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*Meeting Booked*\n${payload.message}`,
+          },
+        },
+      ],
+    };
+
+    await this.sendToSlack(message);
+  }
+
+  /**
+   * Notify when Gaia call is completed
+   */
+  private async notifyGaiaCall(payload: NotificationPayload): Promise<void> {
+    const message: SlackMessage = {
+      channel: '#sdr-workflow',
+      text: `📞 Gaia Call: ${payload.leadName}`,
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*Gaia Call Completed*\n${payload.message}`,
+          },
+        },
+      ],
+    };
+
+    await this.sendToSlack(message);
+  }
+
+  /**
+   * Notify on error
+   */
+  private async notifyError(payload: NotificationPayload): Promise<void> {
+    const message: SlackMessage = {
+      channel: '#sdr-errors',
+      text: `⚠️ Error: ${payload.title}`,
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*Error Occurred*\n${payload.message}`,
+          },
+        },
+      ],
+    };
+
+    await this.sendToSlack(message);
+  }
+
+  /**
+   * Send message to Slack
+   */
+  private async sendToSlack(message: SlackMessage): Promise<void> {
+    if (!this.slackWebhookUrl) {
+      console.warn('Slack webhook URL not configured - skipping notification');
+      return;
+    }
 
     try {
-      // Format message based on event type
-      const slackMessage = this.formatSlackMessage(notification);
+      // Simulate Slack API call
+      // In production, use fetch to call Slack webhook
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
-      // Send to Slack
-      await this.postToSlack(slackMessage);
-
-      const slackNotification: SlackNotification = {
-        id: `notif_${Date.now()}`,
-        clientId: this.clientId,
-        event: notification.event,
-        title: notification.title,
-        message: notification.message,
-        leadId: notification.leadId,
-        campaignId: notification.campaignId,
-        meetingId: notification.meetingId,
-        channel: this.slackChannel,
-        sent: true,
-        sentAt: new Date(),
-        createdAt: new Date(),
-      };
-
-      console.log(`✅ Slack notification sent to ${this.slackChannel}`);
-
-      return slackNotification;
+      console.log(`✅ Message sent to Slack: ${message.channel}`);
     } catch (error) {
-      console.error('❌ Error sending Slack notification:', error);
-      throw error;
+      console.error('Error sending Slack message:', error);
     }
   }
 
   /**
-   * Format notification message for Slack
+   * Send batch notifications
    */
-  private formatSlackMessage(notification: any): any {
-    const colors: Record<NotificationEvent, string> = {
-      'Positive Reply': '#36a64f',
-      'Gaia Call Completed': '#0099ff',
-      'Meeting Booked': '#ff6b6b',
-      'High-Value Lead': '#ffd700',
-      'System Error': '#ff0000',
-      'Campaign Milestone': '#9c27b0',
-    };
-
-    return {
-      channel: this.slackChannel,
-      attachments: [
-        {
-          color: colors[notification.event],
-          title: notification.title,
-          text: notification.message,
-          footer: 'Luxury SDR System',
-          ts: Math.floor(Date.now() / 1000),
-        },
-      ],
-    };
-  }
-
-  /**
-   * Post message to Slack webhook
-   */
-  private async postToSlack(message: any): Promise<void> {
-    // In production, this would call the Slack webhook URL
-    // For now, we'll just log it
-
-    console.log(`📤 Posting to Slack:`, JSON.stringify(message, null, 2));
-
-    // Actual implementation would be:
-    // const response = await fetch(this.slackWebhookUrl, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(message),
-    // });
-  }
-
-  /**
-   * Send escalation alert for high-priority events
-   */
-  async sendEscalationAlert(
-    title: string,
-    message: string,
-    priority: 'Critical' | 'High' | 'Medium'
+  async sendBatchNotifications(
+    payloads: NotificationPayload[]
   ): Promise<void> {
-    console.log(`🚨 Notifications Agent: Sending escalation alert - ${title}`);
+    console.log(`📢 Sending ${payloads.length} notifications...`);
 
-    const escalationMessage = {
-      channel: this.slackChannel,
-      attachments: [
-        {
-          color: priority === 'Critical' ? '#ff0000' : priority === 'High' ? '#ff6b6b' : '#ffa500',
-          title: `🚨 ${priority} Priority: ${title}`,
-          text: message,
-          footer: 'Luxury SDR System - Escalation Alert',
-          ts: Math.floor(Date.now() / 1000),
-        },
-      ],
-    };
+    for (const payload of payloads) {
+      await this.sendNotification(payload);
+    }
 
-    await this.postToSlack(escalationMessage);
+    console.log(`✅ All notifications sent`);
   }
 
   /**
    * Send daily summary report
    */
-  async sendDailySummary(metrics: any): Promise<void> {
-    console.log(`📊 Notifications Agent: Sending daily summary`);
+  async sendDailySummary(summary: {
+    totalLeads: number;
+    leadsEnriched: number;
+    positiveReplies: number;
+    meetingsBooked: number;
+  }): Promise<void> {
+    console.log(`📊 Sending daily summary...`);
 
-    const summaryMessage = {
-      channel: this.slackChannel,
-      attachments: [
+    const message: SlackMessage = {
+      channel: '#sdr-reports',
+      text: '📊 Daily SDR Summary',
+      blocks: [
         {
-          color: '#0099ff',
-          title: '📊 Daily SDR Summary',
-          fields: [
-            {
-              title: 'Leads Outreached',
-              value: metrics.leadsOutreached,
-              short: true,
-            },
-            {
-              title: 'Replies Received',
-              value: metrics.repliesReceived,
-              short: true,
-            },
-            {
-              title: 'Positive Intent',
-              value: metrics.positiveReplies,
-              short: true,
-            },
-            {
-              title: 'Gaia Calls',
-              value: metrics.gaiaCalls,
-              short: true,
-            },
-            {
-              title: 'Meetings Booked',
-              value: metrics.meetingsBooked,
-              short: true,
-            },
-            {
-              title: 'Reply Rate',
-              value: `${metrics.replyRate}%`,
-              short: true,
-            },
-          ],
-          footer: 'Luxury SDR System',
-          ts: Math.floor(Date.now() / 1000),
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*Daily SDR Summary*\n• Total Leads: ${summary.totalLeads}\n• Enriched: ${summary.leadsEnriched}\n• Positive Replies: ${summary.positiveReplies}\n• Meetings Booked: ${summary.meetingsBooked}`,
+          },
         },
       ],
     };
 
-    await this.postToSlack(summaryMessage);
+    await this.sendToSlack(message);
   }
 }

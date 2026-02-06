@@ -1,145 +1,184 @@
 /**
- * ICP & STRATEGY AGENT
- * Reads client ICP, offer, brand voice, and requirements
- * Produces a structured "Targeting Playbook" for all other agents
+ * ICP STRATEGY AGENT
+ * Defines Ideal Customer Profile (ICP)
+ * Scores and prioritizes leads based on ICP alignment
  */
 
-import { ICPProfile, TargetingPlaybook, BuyerPersona } from '../types';
+import { EnrichedLead, PrioritizedLeadList } from '../types';
+
+interface ICPProfile {
+  name: string;
+  targetIndustries: string[];
+  targetGeographies: string[];
+  minRevenue: number;
+  maxRevenue: number;
+  targetRoles: string[];
+  companySize: string;
+  growthRate: number;
+}
+
+interface ScoredLead extends EnrichedLead {
+  icpAlignmentScore: number;
+}
 
 export class ICPStrategyAgent {
   private clientId: string;
+  private icpProfile: ICPProfile;
 
   constructor(clientId: string) {
     this.clientId = clientId;
+    this.icpProfile = this.defineDefaultICP();
   }
 
   /**
-   * Create a comprehensive targeting playbook from ICP data
-   * This playbook guides all downstream agents
+   * Define the Ideal Customer Profile
    */
-  async createTargetingPlaybook(icpData: any): Promise<TargetingPlaybook> {
-    console.log('📋 ICP Strategy Agent: Creating targeting playbook...');
+  defineICP(): ICPProfile {
+    console.log('📋 ICP Strategy Agent: Defining Ideal Customer Profile...');
 
-    // Validate and structure ICP data
-    const icpProfile = this.validateICPData(icpData);
-
-    // Create the playbook
-    const playbook: TargetingPlaybook = {
-      icpId: icpProfile.id,
-      clientId: this.clientId,
-
-      // Targeting Strategy
-      idealIndustries: icpProfile.targetIndustries,
-      idealGeos: icpProfile.targetGeographies,
-      companySizes: this.formatCompanySizes(icpProfile.companySize),
-      aesthetics: icpProfile.brandAesthetics,
-      exclusions: icpProfile.excludedIndustries,
-
-      // Personas & Titles
-      buyerPersonas: icpProfile.buyerPersonas,
-      targetTitles: this.extractTargetTitles(icpProfile.buyerPersonas),
-
-      // Messaging
-      messagingAngles: icpProfile.messagingAngles,
-      valuePropositions: icpProfile.valuePropositions,
-
-      // Qualification
-      qualificationCriteria: icpProfile.qualificationCriteria,
-
-      // Outreach Strategy
-      outreachChannels: ['Email', 'LinkedIn'],
-      sequenceLength: 7,
-
-      createdAt: new Date(),
+    const icp: ICPProfile = {
+      name: 'Enterprise Luxury Tech Buyer',
+      targetIndustries: ['Technology', 'Finance', 'Luxury', 'Hospitality', 'Real Estate'],
+      targetGeographies: ['North America', 'Europe', 'Asia-Pacific'],
+      minRevenue: 50000000, // $50M+
+      maxRevenue: 5000000000, // $5B
+      targetRoles: ['CEO', 'CTO', 'VP of Sales', 'VP of Marketing', 'Director of Operations'],
+      companySize: 'Enterprise',
+      growthRate: 0.15, // 15% YoY growth
     };
 
-    console.log('✅ Playbook created with:');
-    console.log(`   - ${playbook.idealIndustries.length} target industries`);
-    console.log(`   - ${playbook.buyerPersonas.length} buyer personas`);
-    console.log(`   - ${playbook.messagingAngles.length} messaging angles`);
+    console.log(`✅ ICP Defined: ${icp.name}`);
+    console.log(`   - Target Industries: ${icp.targetIndustries.join(', ')}`);
+    console.log(`   - Target Geographies: ${icp.targetGeographies.join(', ')}`);
+    console.log(`   - Revenue Range: $${icp.minRevenue / 1000000}M - $${icp.maxRevenue / 1000000000}B`);
 
-    return playbook;
+    return icp;
   }
 
   /**
-   * Validate and structure incoming ICP data
+   * Define default ICP for initialization
    */
-  private validateICPData(icpData: any): ICPProfile {
-    // In production, this would validate against a schema
-    // For now, we'll ensure required fields exist
-
+  private defineDefaultICP(): ICPProfile {
     return {
-      id: icpData.id || `icp_${Date.now()}`,
+      name: 'Enterprise Luxury Tech Buyer',
+      targetIndustries: ['Technology', 'Finance', 'Luxury', 'Hospitality'],
+      targetGeographies: ['North America', 'Europe', 'Asia-Pacific'],
+      minRevenue: 50000000,
+      maxRevenue: 5000000000,
+      targetRoles: ['CEO', 'CTO', 'VP of Sales', 'VP of Marketing'],
+      companySize: 'Enterprise',
+      growthRate: 0.15,
+    };
+  }
+
+  /**
+   * Score leads based on ICP alignment
+   */
+  scoreLeads(leads: EnrichedLead[]): ScoredLead[] {
+    console.log('🎯 ICP Strategy Agent: Scoring leads against ICP...');
+
+    const scoredLeads: ScoredLead[] = leads.map((lead) => {
+      let score = 0;
+
+      // Industry match (max 25 points)
+      // Check if industry exists and is in target industries
+      if (lead.industry && this.icpProfile.targetIndustries.includes(lead.industry)) {
+        score += 25;
+      }
+
+      // Revenue match (max 30 points)
+      if (
+        lead.companyMetadata?.revenue &&
+        lead.companyMetadata.revenue >= this.icpProfile.minRevenue &&
+        lead.companyMetadata.revenue <= this.icpProfile.maxRevenue
+      ) {
+        score += 30;
+      }
+
+      // Job title match (max 20 points)
+      if (this.icpProfile.targetRoles.some((role) => lead.title.includes(role))) {
+        score += 20;
+      }
+
+      // Company size match (max 15 points)
+      if (lead.companySize === 'Enterprise' || (lead.companyMetadata?.employees && lead.companyMetadata.employees > 1000)) {
+        score += 15;
+      }
+
+      // Luxury positioning bonus (max 10 points)
+      if (lead.luxuryAnalysis && lead.luxuryAnalysis.luxuryScore > 70) {
+        score += 10;
+      }
+
+      return {
+        ...lead,
+        icpAlignmentScore: Math.min(score, 100),
+      };
+    });
+
+    console.log(`✅ Scored ${scoredLeads.length} leads`);
+    const avgScore = scoredLeads.reduce((sum, l) => sum + l.icpAlignmentScore, 0) / scoredLeads.length;
+    console.log(`   - Average ICP Score: ${avgScore.toFixed(1)}`);
+
+    return scoredLeads;
+  }
+
+  /**
+   * Prioritize leads by ICP alignment score
+   */
+  prioritizeLeads(leads: EnrichedLead[]): PrioritizedLeadList {
+    console.log('🏆 ICP Strategy Agent: Prioritizing leads...');
+
+    // Score all leads
+    const scoredLeads = this.scoreLeads(leads);
+
+    // Sort by score descending
+    const prioritized = scoredLeads.sort((a, b) => b.icpAlignmentScore - a.icpAlignmentScore);
+
+    // Segment by score tiers
+    const tier1 = prioritized.filter((l) => l.icpAlignmentScore >= 80);
+    const tier2 = prioritized.filter((l) => l.icpAlignmentScore >= 60 && l.icpAlignmentScore < 80);
+    const tier3 = prioritized.filter((l) => l.icpAlignmentScore >= 40 && l.icpAlignmentScore < 60);
+    const tier4 = prioritized.filter((l) => l.icpAlignmentScore < 40);
+
+    const prioritizedList: PrioritizedLeadList = {
+      id: `priority_${Date.now()}`,
       clientId: this.clientId,
-      name: icpData.name || 'Default ICP',
-
-      targetIndustries: icpData.targetIndustries || [],
-      targetGeographies: icpData.targetGeographies || [],
-      excludedIndustries: icpData.excludedIndustries || [],
-
-      companySize: icpData.companySize || { min: 10, max: 5000 },
-      revenueRange: icpData.revenueRange || { min: 1000000, max: 500000000 },
-
-      luxuryPositioning: icpData.luxuryPositioning || 'Premium',
-      brandAesthetics: icpData.brandAesthetics || [],
-      qualityIndicators: icpData.qualityIndicators || [],
-
-      buyerPersonas: icpData.buyerPersonas || [],
-      messagingAngles: icpData.messagingAngles || [],
-      valuePropositions: icpData.valuePropositions || [],
-
-      qualificationCriteria: icpData.qualificationCriteria || {
-        budget: { hasAllocated: true },
-        authority: { canMakeDecision: true, needsApproval: false },
-        need: { urgency: 'Short-term', specificProblem: '' },
-        timeline: { decisionTimeline: '30-60 days', implementationTimeline: '60-90 days' },
-        fit: { industryFit: true, sizeMatch: true, budgetMatch: true },
+      campaignId: `campaign_${Date.now()}`,
+      leads: prioritized,
+      totalCount: prioritized.length,
+      segments: {
+        tier1,
+        tier2,
+        tier3,
+        tier4,
       },
-
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+
+    console.log(`✅ Leads prioritized`);
+    console.log(`   - Tier 1 (80-100): ${tier1.length}`);
+    console.log(`   - Tier 2 (60-79): ${tier2.length}`);
+    console.log(`   - Tier 3 (40-59): ${tier3.length}`);
+    console.log(`   - Tier 4 (0-39): ${tier4.length}`);
+
+    return prioritizedList;
   }
 
   /**
-   * Format company size ranges for readability
+   * Get ICP profile
    */
-  private formatCompanySizes(sizeRange: { min: number; max: number }): string[] {
-    const sizes: string[] = [];
-
-    if (sizeRange.min <= 50 && sizeRange.max >= 50) sizes.push('Startup (1-50)');
-    if (sizeRange.min <= 500 && sizeRange.max >= 100) sizes.push('Small (50-500)');
-    if (sizeRange.min <= 5000 && sizeRange.max >= 500) sizes.push('Mid-Market (500-5K)');
-    if (sizeRange.max >= 5000) sizes.push('Enterprise (5K+)');
-
-    return sizes.length > 0 ? sizes : ['All Sizes'];
+  getICPProfile(): ICPProfile {
+    return this.icpProfile;
   }
 
   /**
-   * Extract target job titles from buyer personas
+   * Update ICP profile
    */
-  private extractTargetTitles(personas: BuyerPersona[]): string[] {
-    return [...new Set(personas.map((p) => p.title))];
-  }
-
-  /**
-   * Analyze and refine ICP based on campaign performance
-   */
-  async refineICPBasedOnPerformance(
-    icpId: string,
-    performanceData: any
-  ): Promise<ICPProfile> {
-    console.log('🔄 ICP Strategy Agent: Refining ICP based on performance...');
-
-    // In production, this would:
-    // 1. Analyze which segments performed best
-    // 2. Identify underperforming segments
-    // 3. Suggest ICP adjustments
-    // 4. Update the playbook
-
-    console.log('✅ ICP refined based on performance metrics');
-
-    // Return updated ICP (placeholder)
-    return {} as ICPProfile;
+  updateICPProfile(updates: Partial<ICPProfile>): void {
+    console.log('📝 Updating ICP Profile...');
+    this.icpProfile = { ...this.icpProfile, ...updates };
+    console.log('✅ ICP Profile updated');
   }
 }

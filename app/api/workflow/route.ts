@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { SDROrchestrator } from '@/lib/agents';
+import { SDRWorkflow } from '@/lib/agents';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,11 +21,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize orchestrator
-    const orchestrator = new SDROrchestrator(clientId);
+    // Initialize workflow orchestrator
+    const workflow = new SDRWorkflow(clientId);
 
     // Execute workflow (runs asynchronously)
-    orchestrator.executeFullWorkflow(clientId, icpData).catch((error) => {
+    workflow.executeWorkflow().catch((error: Error) => {
       console.error('Workflow execution error:', error);
     });
 

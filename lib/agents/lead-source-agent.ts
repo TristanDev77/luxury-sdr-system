@@ -1,139 +1,142 @@
 /**
- * LEAD SOURCE & LIST BUILDER AGENT
- * Uses Instantly's B2B Lead Finder API as primary data source
- * Constructs queries based on the Targeting Playbook
+ * LEAD SOURCE AGENT
+ * Identifies and validates lead sources
+ * Manages lead pool from multiple channels
  */
 
-import { RawLeadPool, RawLead, TargetingPlaybook } from '../types';
+import { RawLeadPool } from '../types';
+
+interface LeadSourceConfig {
+  name: string;
+  type: 'api' | 'csv' | 'crm' | 'manual';
+  priority: number;
+}
 
 export class LeadSourceAgent {
   private clientId: string;
-  private instantlyApiKey: string = process.env.INSTANTLY_API_KEY || '';
+  private sources: LeadSourceConfig[] = [];
 
   constructor(clientId: string) {
     this.clientId = clientId;
   }
 
   /**
-   * Build a lead list from Instantly based on the targeting playbook
+   * Register a lead source
    */
-  async buildLeadList(playbook: TargetingPlaybook): Promise<RawLeadPool> {
-    console.log('🔍 Lead Source Agent: Building lead list from Instantly...');
+  registerSource(source: LeadSourceConfig): void {
+    this.sources.push(source);
+    console.log(`✅ Lead Source Registered: ${source.name}`);
+  }
 
-    try {
-      // Construct Instantly API query from playbook
-      const query = this.buildInstantlyQuery(playbook);
+  /**
+   * Fetch and validate leads from all sources
+   */
+  async fetchLeads(): Promise<RawLeadPool> {
+    console.log('🔍 Lead Source Agent: Fetching leads from all sources...');
 
-      // Call Instantly API (simulated for now)
-      const leads = await this.queryInstantly(query);
+    const allLeads: RawLeadPool['leads'] = [];
 
-      // Create raw lead pool
-      const leadPool: RawLeadPool = {
-        id: `pool_${Date.now()}`,
-        clientId: this.clientId,
-        campaignId: `campaign_${Date.now()}`,
-        leads: leads,
-        totalCount: leads.length,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      console.log(`✅ Lead pool created with ${leads.length} leads`);
-      return leadPool;
-    } catch (error) {
-      console.error('❌ Error building lead list:', error);
-      throw error;
+    for (const source of this.sources) {
+      try {
+        const leads = await this.fetchFromSource(source);
+        allLeads.push(...leads);
+      } catch (error) {
+        console.error(`Error fetching from ${source.name}:`, error);
+      }
     }
-  }
 
-  /**
-   * Build Instantly API query from targeting playbook
-   */
-  private buildInstantlyQuery(playbook: TargetingPlaybook): any {
-    return {
-      // Industry filters
-      industries: playbook.idealIndustries,
-      excludeIndustries: playbook.icpId,
-
-      // Geography filters
-      countries: playbook.idealGeos,
-
-      // Company size filters
-      companySizes: playbook.companySizes,
-
-      // Job title filters
-      jobTitles: playbook.targetTitles,
-
-      // Seniority levels
-      seniority: ['C-Level', 'VP', 'Director'],
-
-      // Limit results
-      limit: 1000,
+    const leadPool: RawLeadPool = {
+      id: `pool_${Date.now()}`,
+      clientId: this.clientId,
+      campaignId: `campaign_${Date.now()}`,
+      leads: allLeads,
+      totalCount: allLeads.length,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
+
+    console.log(`✅ Fetched ${allLeads.length} leads from ${this.sources.length} sources`);
+    return leadPool;
   }
 
   /**
-   * Query Instantly API for leads
-   * In production, this would call the actual Instantly API
+   * Fetch leads from a specific source
    */
-  private async queryInstantly(query: any): Promise<RawLead[]> {
-    // Simulated API response - in production, this would call:
-    // https://api.instantly.ai/api/v1/leads/search
+  private async fetchFromSource(source: LeadSourceConfig): Promise<RawLeadPool['leads']> {
+    // Map source name to valid enum value
+    const sourceMap: Record<string, 'LinkedIn' | 'Instantly' | 'Manual' | 'Web Research'> = {
+      'LinkedIn': 'LinkedIn',
+      'Instantly': 'Instantly',
+      'Manual': 'Manual',
+      'Web Research': 'Web Research',
+    };
+    
+    const mappedSource = sourceMap[source.name] || 'Manual';
 
-    console.log('📡 Querying Instantly API with filters:', {
-      industries: query.industries.length,
-      countries: query.countries.length,
-      titles: query.jobTitles.length,
-    });
-
-    // Generate mock leads for demonstration
-    const mockLeads: RawLead[] = [];
-    const companies = [
-      'Acme Corp',
-      'TechVision Inc',
-      'Luxury Brands Ltd',
-      'Premium Services Co',
-      'Elite Solutions',
-    ];
-    const titles = ['CEO', 'CMO', 'VP Marketing', 'Director of Growth', 'Head of Sales'];
-
-    for (let i = 0; i < 50; i++) {
-      mockLeads.push({
-        id: `lead_${i}`,
+    // Simulated lead fetching from different sources
+    const mockLeads: RawLeadPool['leads'] = [
+      {
+        id: `lead_${Date.now()}_1`,
         clientId: this.clientId,
-        firstName: `Lead${i}`,
-        lastName: `Contact${i}`,
-        email: `contact${i}@example.com`,
-        phone: `+1-555-${String(i).padStart(4, '0')}`,
-        title: titles[i % titles.length],
-        company: companies[i % companies.length],
-        companyWebsite: `https://${companies[i % companies.length].toLowerCase().replace(/\s+/g, '')}.com`,
-        industry: query.industries[0] || 'Technology',
-        companySize: '100-500',
-        linkedinUrl: `https://linkedin.com/in/contact${i}`,
-        source: 'Instantly',
-        sourceId: `instantly_${i}`,
+        firstName: 'John',
+        lastName: 'Smith',
+        email: 'john.smith@company.com',
+        company: 'Acme Corp',
+        title: 'CTO',
+        industry: 'Technology',
+        source: mappedSource,
         status: 'New',
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
-    }
+      },
+      {
+        id: `lead_${Date.now()}_2`,
+        clientId: this.clientId,
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'jane.doe@company.com',
+        company: 'Tech Innovations',
+        title: 'VP of Sales',
+        industry: 'Technology',
+        source: mappedSource,
+        status: 'New',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
 
     return mockLeads;
   }
 
   /**
-   * Supplement leads with web research
+   * Validate lead data quality
    */
-  async supplementWithWebResearch(leads: RawLead[]): Promise<RawLead[]> {
-    console.log('🌐 Lead Source Agent: Supplementing with web research...');
+  validateLeads(leads: RawLeadPool['leads']): { valid: RawLeadPool['leads']; invalid: RawLeadPool['leads'] } {
+    const valid: RawLeadPool['leads'] = [];
+    const invalid: RawLeadPool['leads'] = [];
 
-    // In production, this would:
-    // 1. Visit company websites
-    // 2. Extract additional contact information
-    // 3. Find social media profiles
-    // 4. Identify decision makers
+    for (const lead of leads) {
+      if (this.isValidLead(lead)) {
+        valid.push(lead);
+      } else {
+        invalid.push(lead);
+      }
+    }
 
-    return leads;
+    console.log(`✅ Validated ${leads.length} leads: ${valid.length} valid, ${invalid.length} invalid`);
+    return { valid, invalid };
+  }
+
+  /**
+   * Check if a lead has required fields
+   */
+  private isValidLead(lead: RawLeadPool['leads'][0]): boolean {
+    return !!(
+      lead.email &&
+      lead.firstName &&
+      lead.lastName &&
+      lead.company &&
+      lead.title
+    );
   }
 }

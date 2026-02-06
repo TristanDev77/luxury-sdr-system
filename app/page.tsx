@@ -11,8 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  BarChart,
-  Bar,
   LineChart,
   Line,
   XAxis,
@@ -384,17 +382,19 @@ export default function Dashboard() {
  * Metric Card Component
  * Displays a single metric with icon and color
  */
-function MetricCard({
-  title,
-  value,
-  icon,
-  color,
-}: {
-  title: string;
-  value: number;
-  icon: string;
-  color: string;
-}) {
+function MetricCard(
+  {
+    title,
+    value,
+    icon,
+    color,
+  }: {
+    title: string;
+    value: number;
+    icon: string;
+    color: string;
+  }
+) {
   const colorClasses = {
     blue: 'bg-blue-50 border-blue-200 text-blue-900',
     green: 'bg-green-50 border-green-200 text-green-900',

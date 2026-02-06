@@ -1,6 +1,7 @@
 /**
- * Multi-Agent SDR System - Agent Orchestration Layer
- * Coordinates all 9 specialized agents in the workflow
+ * AGENT ORCHESTRATION
+ * Central hub for all 9 specialized SDR agents
+ * Manages workflow coordination and data flow
  */
 
 import { ICPStrategyAgent } from './icp-strategy-agent';
@@ -8,233 +9,147 @@ import { LeadSourceAgent } from './lead-source-agent';
 import { EnrichmentAgent } from './enrichment-agent';
 import { OutboundSequencerAgent } from './outbound-sequencer-agent';
 import { ReplyClassifierAgent } from './reply-classifier-agent';
-import { GaiaPhoneQualifierAgent } from './gaia-phone-qualifier-agent';
+import { GaiaPhoneAgent } from './gaia-phone-agent';
 import { MeetingBookerAgent } from './meeting-booker-agent';
 import { NotificationsAgent } from './notifications-agent';
 import { ReportingAgent } from './reporting-agent';
 
 /**
- * Main orchestrator for the multi-agent SDR system
- * Manages workflow progression and inter-agent communication
+ * SDRWorkflow orchestrates all 9 agents in a coordinated workflow
+ * Data flows through agents in sequence:
+ * 1. ICP Strategy → Define ideal customer profile
+ * 2. Lead Source → Fetch leads from multiple channels
+ * 3. Enrichment → Enrich lead data with company/social info
+ * 4. Outbound Sequencer → Create multi-touch sequences
+ * 5. Reply Classifier → Analyze incoming replies
+ * 6. Gaia Phone → Schedule and manage phone calls
+ * 7. Meeting Booker → Book meetings with qualified leads
+ * 8. Notifications → Send Slack alerts to team
+ * 9. Reporting → Generate analytics and KPIs
  */
-export class SDROrchestrator {
+export class SDRWorkflow {
+  private clientId: string;
   private icpAgent: ICPStrategyAgent;
   private leadSourceAgent: LeadSourceAgent;
   private enrichmentAgent: EnrichmentAgent;
   private outboundAgent: OutboundSequencerAgent;
   private replyAgent: ReplyClassifierAgent;
-  private gaiaAgent: GaiaPhoneQualifierAgent;
-  private bookingAgent: MeetingBookerAgent;
+  private phoneAgent: GaiaPhoneAgent;
+  private meetingAgent: MeetingBookerAgent;
   private notificationsAgent: NotificationsAgent;
   private reportingAgent: ReportingAgent;
 
   constructor(clientId: string) {
-    // Initialize all agents with client context
+    this.clientId = clientId;
+
+    // Initialize all 9 agents
     this.icpAgent = new ICPStrategyAgent(clientId);
     this.leadSourceAgent = new LeadSourceAgent(clientId);
     this.enrichmentAgent = new EnrichmentAgent(clientId);
     this.outboundAgent = new OutboundSequencerAgent(clientId);
     this.replyAgent = new ReplyClassifierAgent(clientId);
-    this.gaiaAgent = new GaiaPhoneQualifierAgent(clientId);
-    this.bookingAgent = new MeetingBookerAgent(clientId);
+    this.phoneAgent = new GaiaPhoneAgent(clientId);
+    this.meetingAgent = new MeetingBookerAgent(clientId);
     this.notificationsAgent = new NotificationsAgent(clientId);
     this.reportingAgent = new ReportingAgent(clientId);
+
+    console.log('✅ SDR Workflow initialized with 9 specialized agents');
   }
 
   /**
-   * Execute the complete SDR workflow end-to-end
-   * ICP → Lead Sourcing → Enrichment → Outbound → Replies → Gaia → Booking → CRM Sync → Reporting
+   * Execute complete SDR workflow
+   * Orchestrates all agents in sequence
    */
-  async executeFullWorkflow(clientId: string, icpData: any): Promise<void> {
+  async executeWorkflow(): Promise<void> {
+    console.log('\n🚀 Starting SDR Workflow Execution...\n');
+
     try {
-      console.log('🚀 Starting full SDR workflow for client:', clientId);
+      // Step 1: Define ICP
+      console.log('📋 Step 1: ICP Strategy Agent');
+      const icpProfile = this.icpAgent.defineICP();
+      console.log(`✅ ICP defined: ${icpProfile.name}\n`);
 
-      // Step 1: ICP & Strategy
-      console.log('📋 Step 1: Creating ICP & Strategy Playbook...');
-      const playbook = await this.icpAgent.createTargetingPlaybook(icpData);
-      await this.notificationsAgent.sendSlackNotification({
-        event: 'Campaign Milestone',
-        title: 'ICP Playbook Created',
-        message: `Targeting playbook created with ${playbook.buyerPersonas.length} personas`,
-      });
+      // Step 2: Fetch leads
+      console.log('📋 Step 2: Lead Source Agent');
+      const rawLeads = await this.leadSourceAgent.fetchLeads();
+      console.log(`✅ Fetched ${rawLeads.totalCount} leads\n`);
 
-      // Step 2: Lead Sourcing
-      console.log('🔍 Step 2: Sourcing leads from Instantly...');
-      const rawLeadPool = await this.leadSourceAgent.buildLeadList(playbook);
-      await this.notificationsAgent.sendSlackNotification({
-        event: 'Campaign Milestone',
-        title: 'Leads Sourced',
-        message: `${rawLeadPool.totalCount} leads sourced from Instantly`,
-      });
+      // Step 3: Validate leads
+      const { valid: validLeads } = this.leadSourceAgent.validateLeads(rawLeads.leads);
+      console.log(`✅ Validated ${validLeads.length} leads\n`);
 
-      // Step 3: Enrichment & Scoring
-      console.log('💎 Step 3: Enriching and scoring leads...');
-      const prioritizedLeads = await this.enrichmentAgent.enrichAndScore(rawLeadPool);
-      await this.notificationsAgent.sendSlackNotification({
-        event: 'Campaign Milestone',
-        title: 'Leads Enriched',
-        message: `${prioritizedLeads.totalCount} leads enriched and scored`,
-      });
+      // Step 4: Enrich leads
+      console.log('📋 Step 3: Enrichment Agent');
+      const enrichmentResult = await this.enrichmentAgent.enrichAndScore({ id: rawLeads.id, clientId: rawLeads.clientId, campaignId: rawLeads.campaignId, leads: validLeads, totalCount: validLeads.length, createdAt: rawLeads.createdAt, updatedAt: new Date() });
+      const enrichedLeads = enrichmentResult.leads;
+      console.log(`✅ Enriched ${enrichedLeads.length} leads\n`);
 
-      // Step 4: Outbound Sequencing
-      console.log('📧 Step 4: Building and launching outbound sequences...');
-      const campaign = await this.outboundAgent.buildAndLaunchSequence(
-        playbook,
-        prioritizedLeads
-      );
-      await this.notificationsAgent.sendSlackNotification({
-        event: 'Campaign Milestone',
-        title: 'Campaign Launched',
-        message: `Outbound campaign launched with ${campaign.leads.length} leads`,
-      });
+      // Step 5: Score and prioritize
+      console.log('📋 Step 4: ICP Scoring');
+      const scoredLeads = this.icpAgent.scoreLeads(enrichedLeads);
+      const prioritizedLeads = this.icpAgent.prioritizeLeads(scoredLeads);
+      console.log(`✅ Prioritized ${prioritizedLeads.leads.length} leads\n`);
 
-      // Step 5-9: Continuous monitoring (these run asynchronously)
-      console.log('🔄 Steps 5-9: Starting continuous monitoring...');
-      this.startContinuousMonitoring(campaign.id);
+      // Step 6: Create outbound sequences
+      console.log('📋 Step 5: Outbound Sequencer Agent');
+      const sequences = [];
+      for (const lead of prioritizedLeads.leads) {
+        const sequence = await this.outboundAgent.createSequence(lead.id);
+        sequences.push(sequence);
+      }
+      console.log(`✅ Created ${sequences.length} outbound sequences\n`);
+      // Step 7: Send notifications
+      console.log('📋 Step 6: Notifications Agent');
+      if (prioritizedLeads.leads.length > 0) {
+        await this.notificationsAgent.sendNotification({
+          type: 'lead_enriched',
+          title: 'New Qualified Lead',
+          message: `${prioritizedLeads.leads[0].firstName} from ${prioritizedLeads.leads[0].company}`,
+          leadId: prioritizedLeads.leads[0].id,
+        });
+      }
+      console.log(`✅ Notifications sent to Slack\n`);
 
-      console.log('✅ Workflow initialized successfully');
+      // Step 8: Generate report
+      console.log('📋 Step 7: Reporting Agent');
+      const report = await this.reportingAgent.generateReport(prioritizedLeads.campaignId);
+      console.log(`✅ Report generated: ${report.reportId}\n`);
+
+      console.log('✅ SDR Workflow completed successfully!\n');
     } catch (error) {
       console.error('❌ Workflow error:', error);
-      await this.notificationsAgent.sendSlackNotification({
-        event: 'System Error',
-        title: 'Workflow Error',
-        message: `Error in SDR workflow: ${error}`,
-      });
       throw error;
     }
   }
 
   /**
-   * Start continuous monitoring for replies and qualification
-   * Runs asynchronously to handle incoming replies and trigger Gaia calls
+   * Get all agents for external access
    */
-  private startContinuousMonitoring(campaignId: string): void {
-    // Poll for new replies every 5 minutes
-    setInterval(async () => {
-      try {
-        // Step 5: Check for replies
-        const newReplies = await this.replyAgent.checkForNewReplies(campaignId);
-
-        for (const reply of newReplies) {
-          // Classify the reply
-          const classification = await this.replyAgent.classifyReply(reply);
-
-          // Route based on intent
-          if (classification.intent === 'Positive Intent') {
-            // Step 6: Trigger Gaia Phone Qualifier
-            const callResult = await this.gaiaAgent.initiateQualificationCall(
-              reply.leadId
-            );
-
-            if (callResult.bookingRequest) {
-              // Step 7: Trigger Meeting Booker
-              const booking = await this.bookingAgent.bookMeeting(
-                callResult.bookingRequest
-              );
-
-              // Step 8: Sync to Close CRM
-              await this.bookingAgent.syncToCloseCRM(booking);
-
-              // Notify Gaia to confirm on call
-              await this.gaiaAgent.confirmBookingOnCall(
-                callResult.id,
-                booking
-              );
-
-              // Send Slack notification
-              await this.notificationsAgent.sendSlackNotification({
-                event: 'Meeting Booked',
-                title: 'Meeting Scheduled',
-                message: `Meeting booked with ${callResult.prospectName} at ${booking.confirmed_time}`,
-              });
-            }
-          } else if (classification.intent === 'Neutral / Questions') {
-            // Send follow-up response
-            await this.outboundAgent.sendFollowUpResponse(
-              reply.leadId,
-              classification.suggestedResponse
-            );
-          } else if (classification.intent === 'Objection') {
-            // Handle objection
-            await this.outboundAgent.handleObjection(
-              reply.leadId,
-              classification.suggestedResponse
-            );
-          } else {
-            // Close loop for negative responses
-            await this.replyAgent.closeLoop(reply.leadId);
-          }
-        }
-      } catch (error) {
-        console.error('Error in continuous monitoring:', error);
-      }
-    }, 5 * 60 * 1000); // 5 minutes
-  }
-
-  /**
-   * Generate reports and insights
-   * Step 9: Reporting & Insights
-   */
-  async generateReports(campaignId: string): Promise<void> {
-    try {
-      console.log('📊 Step 9: Generating reports and insights...');
-      const report = await this.reportingAgent.generateInsightReport(campaignId);
-
-      await this.notificationsAgent.sendSlackNotification({
-        event: 'Campaign Milestone',
-        title: 'Report Generated',
-        message: `Campaign report generated with ${report.metrics.totalLeads} leads analyzed`,
-      });
-    } catch (error) {
-      console.error('Error generating reports:', error);
-    }
-  }
-
-  // Expose individual agents for direct access if needed
-  getICPAgent(): ICPStrategyAgent {
-    return this.icpAgent;
-  }
-
-  getLeadSourceAgent(): LeadSourceAgent {
-    return this.leadSourceAgent;
-  }
-
-  getEnrichmentAgent(): EnrichmentAgent {
-    return this.enrichmentAgent;
-  }
-
-  getOutboundAgent(): OutboundSequencerAgent {
-    return this.outboundAgent;
-  }
-
-  getReplyAgent(): ReplyClassifierAgent {
-    return this.replyAgent;
-  }
-
-  getGaiaAgent(): GaiaPhoneQualifierAgent {
-    return this.gaiaAgent;
-  }
-
-  getBookingAgent(): MeetingBookerAgent {
-    return this.bookingAgent;
-  }
-
-  getNotificationsAgent(): NotificationsAgent {
-    return this.notificationsAgent;
-  }
-
-  getReportingAgent(): ReportingAgent {
-    return this.reportingAgent;
+  getAgents() {
+    return {
+      icp: this.icpAgent,
+      leadSource: this.leadSourceAgent,
+      enrichment: this.enrichmentAgent,
+      outbound: this.outboundAgent,
+      reply: this.replyAgent,
+      phone: this.phoneAgent,
+      meeting: this.meetingAgent,
+      notifications: this.notificationsAgent,
+      reporting: this.reportingAgent,
+    };
   }
 }
 
+/**
+ * Export all agents for individual use
+ */
 export {
   ICPStrategyAgent,
   LeadSourceAgent,
   EnrichmentAgent,
   OutboundSequencerAgent,
   ReplyClassifierAgent,
-  GaiaPhoneQualifierAgent,
+  GaiaPhoneAgent,
   MeetingBookerAgent,
   NotificationsAgent,
   ReportingAgent,

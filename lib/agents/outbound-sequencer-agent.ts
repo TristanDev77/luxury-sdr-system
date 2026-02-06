@@ -1,11 +1,26 @@
 /**
- * OUTBOUND SEQUENCER & COPY AGENT
- * Generates multi-step outbound sequences (Email, LinkedIn, SMS)
- * Personalizes messages using website content, social posts, press mentions
- * Sends campaigns to Instantly via API
+ * OUTBOUND SEQUENCER AGENT
+ * Creates and manages multi-touch outbound sequences
+ * Handles email, LinkedIn, and phone touchpoints
  */
 
-import { OutboundSequence, CampaignExecution, PrioritizedLeadList, TargetingPlaybook } from '../types';
+interface SequenceStep {
+  stepNumber: number;
+  channel: 'email' | 'linkedin' | 'phone';
+  template: string;
+  delayDays: number;
+  subject?: string;
+}
+
+interface OutboundSequence {
+  sequenceId: string;
+  leadId: string;
+  steps: SequenceStep[];
+  currentStep: number;
+  status: 'active' | 'paused' | 'completed' | 'failed';
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export class OutboundSequencerAgent {
   private clientId: string;
@@ -15,167 +30,155 @@ export class OutboundSequencerAgent {
   }
 
   /**
-   * Build and launch outbound sequence
+   * Create outbound sequence for lead
    */
-  async buildAndLaunchSequence(
-    playbook: TargetingPlaybook,
-    prioritizedLeads: PrioritizedLeadList
-  ): Promise<CampaignExecution> {
-    console.log('📧 Outbound Sequencer Agent: Building and launching sequences...');
+  async createSequence(leadId: string): Promise<OutboundSequence> {
+    console.log(`📧 Outbound Sequencer Agent: Creating sequence for lead ${leadId}...`);
 
-    // Generate email sequence
-    const emailSequence = this.generateEmailSequence(playbook);
-
-    // Generate LinkedIn sequence
-    const linkedinSequence = this.generateLinkedInSequence(playbook);
-
-    // Create outbound sequence
-    const sequence: OutboundSequence = {
-      id: `seq_${Date.now()}`,
-      clientId: this.clientId,
-      campaignId: `campaign_${Date.now()}`,
-      name: `Campaign - ${new Date().toLocaleDateString()}`,
-      emailSequence,
-      linkedinSequence,
-      personalizationRules: {
-        useCompanyName: true,
-        useFirstName: true,
-        useRecentNews: true,
-        useSocialMentions: true,
-      },
-      status: 'Active',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    // Launch campaign with Tier 1 and Tier 2 leads
-    const campaignLeads = [...prioritizedLeads.segments.tier1, ...prioritizedLeads.segments.tier2];
-
-    const campaign: CampaignExecution = {
-      id: `exec_${Date.now()}`,
-      clientId: this.clientId,
-      sequenceId: sequence.id,
-      name: sequence.name,
-      leads: campaignLeads,
-      status: 'Running',
-      startDate: new Date(),
-      metrics: {
-        totalSent: campaignLeads.length,
-        opened: 0,
-        clicked: 0,
-        replied: 0,
-        bounced: 0,
-      },
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    console.log(`✅ Campaign launched with ${campaignLeads.length} leads`);
-    console.log(`   - Email sequence: ${emailSequence.length} steps`);
-    console.log(`   - LinkedIn sequence: ${linkedinSequence?.length || 0} steps`);
-
-    return campaign;
-  }
-
-  /**
-   * Generate email sequence with luxury, concierge-like tone
-   */
-  private generateEmailSequence(playbook: TargetingPlaybook): any[] {
-    return [
+    // Define default sequence steps
+    const steps: SequenceStep[] = [
       {
         stepNumber: 1,
-        subject: 'A curated opportunity for {{firstName}}',
-        body: `Dear {{firstName}},
-
-I hope this message finds you well. I've been following {{company}}'s impressive trajectory in {{industry}}, and I believe there's a unique opportunity that aligns perfectly with your vision.
-
-{{valueProposition}}
-
-I'd love to explore this with you briefly—would you be open to a 15-minute conversation?
-
-Best regards,
-[Your Name]`,
+        channel: 'email',
+        template: 'initial_outreach',
         delayDays: 0,
-        personalizationTokens: ['{{firstName}}', '{{company}}', '{{industry}}', '{{valueProposition}}'],
+        subject: 'Quick question about your luxury tech strategy',
       },
       {
         stepNumber: 2,
-        subject: 'Quick follow-up: {{company}} + {{opportunity}}',
-        body: `Hi {{firstName}},
-
-I wanted to follow up on my previous message. I've noticed {{company}} is making waves in {{recentNews}}, which reinforces my belief that this could be timely.
-
-Would you have 15 minutes this week?
-
-Best,
-[Your Name]`,
-        delayDays: 3,
-        personalizationTokens: ['{{firstName}}', '{{company}}', '{{opportunity}}', '{{recentNews}}'],
+        channel: 'linkedin',
+        template: 'linkedin_followup',
+        delayDays: 2,
       },
       {
         stepNumber: 3,
-        subject: 'One more thing about {{company}}...',
-        body: `{{firstName}},
-
-I realize I may have caught you at a busy time. I just wanted to share one more insight that might be relevant to {{company}}'s {{painPoint}}.
-
-If you're open to it, I'd love to show you how {{solution}} could help.
-
-Warm regards,
-[Your Name]`,
-        delayDays: 5,
-        personalizationTokens: ['{{firstName}}', '{{company}}', '{{painPoint}}', '{{solution}}'],
+        channel: 'email',
+        template: 'value_prop',
+        delayDays: 4,
+        subject: 'How luxury brands are using AI for personalization',
       },
       {
         stepNumber: 4,
-        subject: 'Last attempt: {{firstName}}, are you interested?',
-        body: `{{firstName}},
-
-I'll keep this brief. If {{opportunity}} isn't relevant right now, I completely understand. But if there's any chance it could be valuable, I'd hate for us to miss the connection.
-
-Let me know either way—no pressure.
-
-Best,
-[Your Name]`,
+        channel: 'phone',
+        template: 'phone_script',
         delayDays: 7,
-        personalizationTokens: ['{{firstName}}', '{{opportunity}}'],
-      },
-    ];
-  }
-
-  /**
-   * Generate LinkedIn sequence
-   */
-  private generateLinkedInSequence(playbook: TargetingPlaybook): any[] {
-    return [
-      {
-        stepNumber: 1,
-        connectionNote: `Hi {{firstName}}, I've been impressed by {{company}}'s work in {{industry}}. I think there could be a valuable conversation here. Looking forward to connecting!`,
-        delayDays: 0,
-        personalizationTokens: ['{{firstName}}', '{{company}}', '{{industry}}'],
       },
       {
-        stepNumber: 2,
-        followUpMessage: `{{firstName}}, thanks for connecting! I wanted to share something I think could be relevant to {{company}}'s {{goal}}. Would you be open to a brief chat?`,
-        delayDays: 2,
-        personalizationTokens: ['{{firstName}}', '{{company}}', '{{goal}}'],
+        stepNumber: 5,
+        channel: 'email',
+        template: 'final_cta',
+        delayDays: 10,
+        subject: 'Last chance: exclusive luxury tech briefing',
       },
     ];
+
+    const sequence: OutboundSequence = {
+      sequenceId: `seq_${Date.now()}`,
+      leadId,
+      steps,
+      currentStep: 1,
+      status: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    console.log(`✅ Sequence created: ${sequence.sequenceId}`);
+    console.log(`   - Lead: ${leadId}`);
+    console.log(`   - Steps: ${steps.length}`);
+    console.log(`   - Status: ${sequence.status}`);
+
+    return sequence;
   }
 
   /**
-   * Send follow-up response to neutral replies
+   * Execute next step in sequence
    */
-  async sendFollowUpResponse(leadId: string, response: string | undefined): Promise<void> {
-    console.log(`📨 Sending follow-up response to lead ${leadId}`);
-    // In production, this would send via Instantly API
+  async executeNextStep(sequence: OutboundSequence): Promise<OutboundSequence> {
+    console.log(`▶️  Executing step ${sequence.currentStep} for sequence ${sequence.sequenceId}...`);
+
+    if (sequence.currentStep > sequence.steps.length) {
+      sequence.status = 'completed';
+      console.log(`✅ Sequence completed`);
+      return sequence;
+    }
+
+    const step = sequence.steps[sequence.currentStep - 1];
+
+    // Execute step based on channel
+    switch (step.channel) {
+      case 'email':
+        await this.sendEmail(sequence.leadId, step);
+        break;
+      case 'linkedin':
+        await this.sendLinkedInMessage(sequence.leadId, step);
+        break;
+      case 'phone':
+        await this.schedulePhoneCall(sequence.leadId, step);
+        break;
+    }
+
+    // Move to next step
+    sequence.currentStep += 1;
+    sequence.updatedAt = new Date();
+
+    console.log(`✅ Step executed. Next step: ${sequence.currentStep}`);
+
+    return sequence;
   }
 
   /**
-   * Handle objections with appropriate responses
+   * Send email from sequence
    */
-  async handleObjection(leadId: string, response: string | undefined): Promise<void> {
-    console.log(`🛡️ Handling objection for lead ${leadId}`);
-    // In production, this would generate and send objection-handling response
+  private async sendEmail(leadId: string, step: SequenceStep): Promise<void> {
+    console.log(`📧 Sending email (${step.template}) to lead ${leadId}`);
+
+    // Simulate email sending via Instantly or similar
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    console.log(`✅ Email sent`);
+  }
+
+  /**
+   * Send LinkedIn message from sequence
+   */
+  private async sendLinkedInMessage(leadId: string, step: SequenceStep): Promise<void> {
+    console.log(`💼 Sending LinkedIn message (${step.template}) to lead ${leadId}`);
+
+    // Simulate LinkedIn message sending
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    console.log(`✅ LinkedIn message sent`);
+  }
+
+  /**
+   * Schedule phone call from sequence
+   */
+  private async schedulePhoneCall(leadId: string, step: SequenceStep): Promise<void> {
+    console.log(`📞 Scheduling phone call (${step.template}) for lead ${leadId}`);
+
+    // Simulate phone call scheduling
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    console.log(`✅ Phone call scheduled`);
+  }
+
+  /**
+   * Pause sequence
+   */
+  pauseSequence(sequence: OutboundSequence): OutboundSequence {
+    sequence.status = 'paused';
+    sequence.updatedAt = new Date();
+    console.log(`⏸️  Sequence paused: ${sequence.sequenceId}`);
+    return sequence;
+  }
+
+  /**
+   * Resume sequence
+   */
+  resumeSequence(sequence: OutboundSequence): OutboundSequence {
+    sequence.status = 'active';
+    sequence.updatedAt = new Date();
+    console.log(`▶️  Sequence resumed: ${sequence.sequenceId}`);
+    return sequence;
   }
 }

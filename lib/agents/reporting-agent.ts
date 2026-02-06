@@ -1,10 +1,32 @@
 /**
- * REPORTING & INSIGHTS AGENT
- * Aggregates data from Instantly, Lindy logs, and Close CRM
- * Generates dashboards and insights for the client portal
+ * REPORTING AGENT
+ * Generates workflow metrics and reports
+ * Tracks KPIs and campaign performance
  */
 
-import { CampaignMetrics, InsightReport } from '../types';
+interface WorkflowMetrics {
+  totalLeads: number;
+  leadsEnriched: number;
+  leadsOutreached: number;
+  emailsSent: number;
+  emailsOpened: number;
+  emailsClicked: number;
+  emailsReplied: number;
+  positiveReplies: number;
+  gaiaCalls: number;
+  meetingsBooked: number;
+  conversionRate: number;
+  timestamp: Date;
+}
+
+interface CampaignReport {
+  reportId: string;
+  campaignId: string;
+  metrics: WorkflowMetrics;
+  insights: string[];
+  recommendations: string[];
+  generatedAt: Date;
+}
 
 export class ReportingAgent {
   private clientId: string;
@@ -14,227 +36,158 @@ export class ReportingAgent {
   }
 
   /**
-   * Generate comprehensive insight report for a campaign
+   * Generate campaign report
    */
-  async generateInsightReport(campaignId: string): Promise<InsightReport> {
-    console.log(`📊 Reporting Agent: Generating insight report for campaign ${campaignId}`);
+  async generateReport(campaignId: string): Promise<CampaignReport> {
+    console.log(`📊 Reporting Agent: Generating campaign report...`);
 
-    try {
-      // Aggregate metrics from all sources
-      const metrics = await this.aggregateMetrics(campaignId);
+    // Collect metrics
+    const metrics = await this.collectMetrics(campaignId);
 
-      // Generate insights
-      const insights = this.generateInsights(metrics);
+    // Generate insights
+    const insights = this.generateInsights(metrics);
 
-      // Analyze trends
-      const trends = this.analyzeTrends(metrics);
+    // Generate recommendations
+    const recommendations = this.generateRecommendations(metrics);
 
-      const report: InsightReport = {
-        id: `report_${Date.now()}`,
-        clientId: this.clientId,
-        period: {
-          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-          endDate: new Date(),
-        },
-        metrics,
-        insights,
-        trends,
-        createdAt: new Date(),
-      };
+    const report: CampaignReport = {
+      reportId: `report_${Date.now()}`,
+      campaignId,
+      metrics,
+      insights,
+      recommendations,
+      generatedAt: new Date(),
+    };
 
-      console.log(`✅ Report generated with ${metrics.totalLeads} leads analyzed`);
+    console.log(`✅ Report generated: ${report.reportId}`);
+    console.log(`   - Total Leads: ${metrics.totalLeads}`);
+    console.log(`   - Conversion Rate: ${metrics.conversionRate.toFixed(2)}%`);
+    console.log(`   - Meetings Booked: ${metrics.meetingsBooked}`);
 
-      return report;
-    } catch (error) {
-      console.error('❌ Error generating report:', error);
-      throw error;
-    }
+    return report;
   }
 
   /**
-   * Aggregate metrics from all sources
+   * Collect metrics from workflow
    */
-  private async aggregateMetrics(campaignId: string): Promise<CampaignMetrics> {
-    console.log(`📈 Aggregating metrics from all sources...`);
+  private async collectMetrics(campaignId: string): Promise<WorkflowMetrics> {
+    console.log(`📈 Collecting metrics for campaign: ${campaignId}`);
 
-    // In production, this would:
-    // 1. Query Instantly API for email metrics
-    // 2. Query Lindy logs for call metrics
-    // 3. Query Close CRM for opportunity metrics
+    // Simulate collecting metrics from various agents
+    // In production, query database or API for actual metrics
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-    const metrics: CampaignMetrics = {
-      campaignId,
-      clientId: this.clientId,
-
-      // Volume Metrics
+    const metrics: WorkflowMetrics = {
       totalLeads: 150,
       leadsEnriched: 145,
       leadsOutreached: 140,
-
-      // Email Metrics
       emailsSent: 140,
       emailsOpened: 56,
       emailsClicked: 28,
       emailsReplied: 21,
-      emailsBounced: 4,
-
-      // Engagement Metrics
-      openRate: 40,
-      clickRate: 20,
-      replyRate: 15,
-
-      // Intent Metrics
       positiveReplies: 12,
-      neutralReplies: 6,
-      objections: 2,
-      notInterested: 1,
-
-      // Qualification Metrics
       gaiaCalls: 12,
-      qualifiedLeads: 10,
-      qualificationRate: 83,
-
-      // Meeting Metrics
       meetingsBooked: 8,
-      meetingsCompleted: 5,
-      meetingNoShows: 1,
-
-      // Performance
-      timeToFirstMeeting: 7,
-      meetingToOpportunityRate: 60,
-
-      // Best Performers
-      bestPerformingSegment: 'Tier 1 (80-100 ICP Score)',
-      bestPerformingAngle: 'Sales Efficiency Value Prop',
-      bestPerformingChannel: 'Email',
-
-      reportedAt: new Date(),
+      conversionRate: (8 / 150) * 100,
+      timestamp: new Date(),
     };
 
+    console.log(`✅ Metrics collected`);
     return metrics;
   }
 
   /**
    * Generate insights from metrics
    */
-  private generateInsights(metrics: CampaignMetrics): any {
-    return {
-      topPerformingICPSegments: [
-        'Enterprise SaaS Companies (500-5K employees)',
-        'Tech-Forward Industries (Software, FinTech)',
-        'High Revenue Companies ($50M+)',
-      ],
-      topPerformingMessagingAngles: [
-        'Sales Efficiency & Revenue Growth',
-        'Team Productivity & Collaboration',
-        'Data-Driven Decision Making',
-      ],
-      channelEffectiveness: {
-        Email: 85,
-        LinkedIn: 65,
-        SMS: 45,
-      },
-      improvementAreas: [
-        'Increase email open rate from 40% to 50%',
-        'Improve reply rate from 15% to 20%',
-        'Reduce meeting no-show rate from 20% to 10%',
-      ],
-      recommendations: [
-        'A/B test subject lines to improve open rates',
-        'Personalize email body with company-specific insights',
-        'Follow up with non-responders after 7 days',
-        'Use LinkedIn for warm introductions before email',
-        'Schedule Gaia calls within 24 hours of positive reply',
-      ],
-    };
+  private generateInsights(metrics: WorkflowMetrics): string[] {
+    const insights: string[] = [];
+
+    // Email performance insights
+    const openRate = (metrics.emailsOpened / metrics.emailsSent) * 100;
+    if (openRate > 40) {
+      insights.push('Strong email open rate - subject lines are effective');
+    } else if (openRate < 20) {
+      insights.push('Low email open rate - consider improving subject lines');
+    }
+
+    // Reply rate insights
+    const replyRate = (metrics.emailsReplied / metrics.emailsSent) * 100;
+    if (replyRate > 15) {
+      insights.push('Excellent reply rate - messaging resonates with audience');
+    }
+
+    // Conversion insights
+    if (metrics.conversionRate > 5) {
+      insights.push('Strong conversion rate - campaign is performing well');
+    }
+
+    // Positive reply insights
+    const positiveReplyRate = (metrics.positiveReplies / metrics.emailsReplied) * 100;
+    if (positiveReplyRate > 50) {
+      insights.push('High positive reply rate - strong lead quality');
+    }
+
+    return insights;
   }
 
   /**
-   * Analyze trends in campaign performance
+   * Generate recommendations
    */
-  private analyzeTrends(metrics: CampaignMetrics): any {
-    return {
-      replyRateTrend: 'Up',
-      qualificationRateTrend: 'Up',
-      meetingBookingTrend: 'Up',
-    };
+  private generateRecommendations(metrics: WorkflowMetrics): string[] {
+    const recommendations: string[] = [];
+
+    // Enrichment recommendations
+    if (metrics.leadsEnriched < metrics.totalLeads * 0.9) {
+      recommendations.push('Improve lead enrichment coverage - aim for 95%+');
+    }
+
+    // Outreach recommendations
+    if (metrics.leadsOutreached < metrics.leadsEnriched * 0.95) {
+      recommendations.push('Increase outreach volume - reach more enriched leads');
+    }
+
+    // Follow-up recommendations
+    const replyRate = (metrics.emailsReplied / metrics.emailsSent) * 100;
+    if (replyRate < 10) {
+      recommendations.push('Improve email copy - test new messaging variations');
+    }
+
+    // Qualification recommendations
+    if (metrics.gaiaCalls < metrics.positiveReplies * 0.8) {
+      recommendations.push('Increase Gaia call volume - qualify more positive replies');
+    }
+
+    // Meeting booking recommendations
+    if (metrics.meetingsBooked < metrics.gaiaCalls * 0.6) {
+      recommendations.push('Improve meeting booking rate - refine qualification criteria');
+    }
+
+    return recommendations;
   }
 
   /**
-   * Generate dashboard data for client portal
+   * Export report to CSV
    */
-  async generateDashboardData(clientId: string): Promise<any> {
-    console.log(`📊 Reporting Agent: Generating dashboard data for client ${clientId}`);
+  async exportToCSV(report: CampaignReport): Promise<string> {
+    console.log(`📥 Exporting report to CSV...`);
 
-    // In production, this would aggregate real-time data
+    // Simulate CSV export
+    const csv = `Campaign Report\n${report.reportId}\n\nMetrics\n`;
 
-    return {
-      overview: {
-        totalCampaigns: 5,
-        activeCampaigns: 2,
-        totalLeads: 750,
-        totalMeetingsBooked: 45,
-        totalOpportunitiesCreated: 28,
-      },
-      recentActivity: [
-        {
-          timestamp: new Date(),
-          event: 'Meeting Booked',
-          prospect: 'John Doe, Acme Corp',
-          details: 'Discovery call scheduled for tomorrow at 2 PM',
-        },
-        {
-          timestamp: new Date(Date.now() - 60 * 60 * 1000),
-          event: 'Positive Reply',
-          prospect: 'Jane Smith, TechVision Inc',
-          details: 'Prospect expressed strong interest',
-        },
-      ],
-      topLeads: [
-        {
-          name: 'John Doe',
-          company: 'Acme Corp',
-          icpScore: 95,
-          status: 'Meeting Scheduled',
-          nextAction: 'Discovery Call',
-        },
-        {
-          name: 'Jane Smith',
-          company: 'TechVision Inc',
-          icpScore: 88,
-          status: 'Qualified',
-          nextAction: 'Book Meeting',
-        },
-      ],
-      metrics: {
-        openRate: 40,
-        clickRate: 20,
-        replyRate: 15,
-        qualificationRate: 83,
-        meetingBookingRate: 67,
-      },
-    };
+    console.log(`✅ Report exported to CSV`);
+    return csv;
   }
 
   /**
-   * Export report as PDF
+   * Send report via email
    */
-  async exportReportAsPDF(reportId: string): Promise<string> {
-    console.log(`📄 Reporting Agent: Exporting report ${reportId} as PDF`);
+  async sendReportEmail(report: CampaignReport, recipientEmail: string): Promise<void> {
+    console.log(`📧 Sending report to ${recipientEmail}...`);
 
-    // In production, this would generate a PDF using a library like PDFKit
+    // Simulate sending report email
+    // In production, use Resend, SendGrid, or similar
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-    return `https://reports.example.com/${reportId}.pdf`;
-  }
-
-  /**
-   * Schedule automated report generation
-   */
-  async scheduleAutomatedReports(clientId: string, frequency: 'Daily' | 'Weekly' | 'Monthly'): Promise<void> {
-    console.log(`⏰ Reporting Agent: Scheduling ${frequency} automated reports for client ${clientId}`);
-
-    // In production, this would set up a cron job or scheduled task
-
-    console.log(`✅ Automated ${frequency} reports scheduled`);
+    console.log(`✅ Report sent via email`);
   }
 }

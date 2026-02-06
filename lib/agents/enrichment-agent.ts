@@ -6,6 +6,37 @@
 
 import { RawLeadPool, EnrichedLead, PrioritizedLeadList } from '../types';
 
+interface CompanyMetadata {
+  revenue?: number;
+  employees?: number;
+  founded?: number;
+  category?: string;
+  description?: string;
+  logo?: string;
+  headquarters?: string;
+}
+
+interface SocialSignals {
+  linkedinFollowers?: number;
+  twitterFollowers?: number;
+  recentActivity?: string[];
+}
+
+interface LuxuryAnalysis {
+  brandQuality: number;
+  visualsQuality: number;
+  awards: string[];
+  pressmentions: string[];
+  luxuryScore: number;
+}
+
+interface LeadSegments {
+  tier1: EnrichedLead[];
+  tier2: EnrichedLead[];
+  tier3: EnrichedLead[];
+  tier4: EnrichedLead[];
+}
+
 export class EnrichmentAgent {
   private clientId: string;
 
@@ -40,7 +71,7 @@ export class EnrichmentAgent {
       campaignId: leadPool.campaignId,
       leads: enrichedLeads.sort((a, b) => b.icpAlignmentScore - a.icpAlignmentScore),
       totalCount: enrichedLeads.length,
-      segments: segments,
+      segments,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -57,116 +88,137 @@ export class EnrichmentAgent {
   /**
    * Enrich a single lead with company metadata and social signals
    */
-  private async enrichLead(rawLead: any): Promise<EnrichedLead> {
+  private async enrichLead(rawLead: RawLeadPool['leads'][0]): Promise<EnrichedLead> {
     // Simulate API calls to Clearbit, PDL, etc.
     const companyMetadata = await this.fetchCompanyMetadata(rawLead.company);
-    const socialSignals = await this.fetchSocialSignals(rawLead);
+    const socialSignals = await this.fetchSocialSignals();
     const luxuryAnalysis = await this.analyzeLuxuryPositioning(rawLead.company);
 
-    return {
-      ...rawLead,
+    const enrichedLead: EnrichedLead = {
+      id: rawLead.id,
+      clientId: rawLead.clientId,
+      firstName: rawLead.firstName,
+      lastName: rawLead.lastName,
+      email: rawLead.email,
+      phone: rawLead.phone,
+      title: rawLead.title,
+      company: rawLead.company,
+      companyWebsite: rawLead.companyWebsite,
+      industry: rawLead.industry,
+      companySize: rawLead.companySize,
+      linkedinUrl: rawLead.linkedinUrl,
+      twitterUrl: rawLead.twitterUrl,
+      source: rawLead.source,
+      sourceId: rawLead.sourceId,
+      status: 'Enriched',
       companyMetadata,
       socialSignals,
       luxuryAnalysis,
-      icpAlignmentScore: 0, // Will be calculated in scoreLead
+      icpAlignmentScore: 0,
       enrichmentStatus: 'Complete',
+      createdAt: rawLead.createdAt,
+      updatedAt: new Date(),
       enrichedAt: new Date(),
-    } as EnrichedLead;
+    };
+
+    return enrichedLead;
   }
 
   /**
-   * Fetch company metadata from enrichment APIs
+   * Score lead based on ICP alignment
    */
-  private async fetchCompanyMetadata(company: string): Promise<any> {
-    // Simulated Clearbit/PDL API response
+  private scoreLead(lead: EnrichedLead): EnrichedLead {
+    // Calculate ICP alignment score (0-100)
+    let score = 0;
+
+    // Revenue scoring (max 30 points)
+    if (lead.companyMetadata?.revenue && lead.companyMetadata.revenue > 100000000) {
+      score += 30;
+    } else if (lead.companyMetadata?.revenue && lead.companyMetadata.revenue > 50000000) {
+      score += 20;
+    } else if (lead.companyMetadata?.revenue && lead.companyMetadata.revenue > 10000000) {
+      score += 10;
+    }
+
+    // Industry scoring (max 25 points)
+    const luxuryIndustries = ['Technology', 'Finance', 'Luxury', 'Hospitality'];
+    if (lead.industry && luxuryIndustries.includes(lead.industry)) {
+      score += 25;
+    }
+
+    // Job title scoring (max 15 points)
+    const executiveRoles = ['CEO', 'CTO', 'VP', 'Director', 'President'];
+    if (executiveRoles.some((role) => lead.title.includes(role))) {
+      score += 15;
+    }
+
+    // Social signals scoring (max 10 points)
+    if (lead.socialSignals && lead.socialSignals.linkedinFollowers && lead.socialSignals.linkedinFollowers > 10000) {
+      score += 10;
+    }
+
+    lead.icpAlignmentScore = Math.min(score, 100);
+    return lead;
+  }
+
+  /**
+   * Fetch company metadata from external APIs
+   */
+  private async fetchCompanyMetadata(company: string): Promise<CompanyMetadata> {
+    // Simulate API call to Clearbit or similar
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     return {
-      revenue: Math.floor(Math.random() * 500000000) + 1000000,
-      employees: Math.floor(Math.random() * 5000) + 10,
-      founded: Math.floor(Math.random() * 30) + 1990,
+      revenue: Math.floor(Math.random() * 500000000),
+      employees: Math.floor(Math.random() * 5000),
+      founded: 2010 + Math.floor(Math.random() * 14),
       category: 'Technology',
-      description: `${company} is a leading provider of premium solutions`,
-      logo: `https://logo.clearbit.com/${company.toLowerCase().replace(/\s+/g, '')}.com/logo`,
+      description: `${company} is a leading technology company`,
+      logo: `https://logo.clearbit.com/${company.toLowerCase()}.com`,
       headquarters: 'San Francisco, CA',
     };
   }
 
   /**
-   * Fetch social signals for the lead
+   * Fetch social signals for lead
    */
-  private async fetchSocialSignals(lead: any): Promise<any> {
+  private async fetchSocialSignals(): Promise<SocialSignals> {
+    // Simulate API call to LinkedIn or similar
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     return {
-      linkedinFollowers: Math.floor(Math.random() * 100000),
-      twitterFollowers: Math.floor(Math.random() * 50000),
-      recentActivity: [
-        'Posted about industry trends',
-        'Engaged with thought leadership content',
-        'Shared company updates',
-      ],
+      linkedinFollowers: Math.floor(Math.random() * 50000),
+      twitterFollowers: Math.floor(Math.random() * 10000),
+      recentActivity: ['Posted article', 'Shared update', 'Engaged with content'],
     };
   }
 
   /**
-   * Analyze luxury positioning of the company
+   * Analyze luxury positioning of company
    */
-  private async analyzeLuxuryPositioning(company: string): Promise<any> {
-    // Simulate analysis of brand quality, awards, press mentions
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async analyzeLuxuryPositioning(company: string): Promise<LuxuryAnalysis> {
+    // Simulate luxury analysis
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     return {
       brandQuality: Math.floor(Math.random() * 100),
       visualsQuality: Math.floor(Math.random() * 100),
-      awards: ['Industry Excellence Award', 'Best in Class'],
-      pressmentions: ['Featured in Forbes', 'TechCrunch Coverage'],
+      awards: ['Industry Award 2024'],
+      pressmentions: ['Featured in TechCrunch'],
       luxuryScore: Math.floor(Math.random() * 100),
     };
   }
 
   /**
-   * Score a lead based on ICP alignment
+   * Segment leads by ICP alignment score
    */
-  private scoreLead(enriched: EnrichedLead): EnrichedLead {
-    let score = 0;
+  private segmentByScore(leads: EnrichedLead[]): LeadSegments {
+    const tier1 = leads.filter((l) => l.icpAlignmentScore >= 80);
+    const tier2 = leads.filter((l) => l.icpAlignmentScore >= 60 && l.icpAlignmentScore < 80);
+    const tier3 = leads.filter((l) => l.icpAlignmentScore >= 40 && l.icpAlignmentScore < 60);
+    const tier4 = leads.filter((l) => l.icpAlignmentScore < 40);
 
-    // Company size match (0-20 points)
-    if (enriched.companyMetadata.employees >= 100 && enriched.companyMetadata.employees <= 5000) {
-      score += 20;
-    } else if (enriched.companyMetadata.employees > 50) {
-      score += 15;
-    }
-
-    // Revenue match (0-20 points)
-    if (
-      enriched.companyMetadata.revenue >= 1000000 &&
-      enriched.companyMetadata.revenue <= 500000000
-    ) {
-      score += 20;
-    }
-
-    // Luxury positioning (0-30 points)
-    score += Math.floor((enriched.luxuryAnalysis.luxuryScore / 100) * 30);
-
-    // Social signals (0-15 points)
-    if (enriched.socialSignals.linkedinFollowers > 10000) {
-      score += 15;
-    } else if (enriched.socialSignals.linkedinFollowers > 1000) {
-      score += 10;
-    }
-
-    // Awards and press (0-15 points)
-    score += enriched.luxuryAnalysis.awards.length * 5;
-    score += enriched.luxuryAnalysis.pressmentions.length * 5;
-
-    enriched.icpAlignmentScore = Math.min(score, 100);
-    return enriched;
-  }
-
-  /**
-   * Segment leads by score into tiers
-   */
-  private segmentByScore(leads: EnrichedLead[]): any {
-    return {
-      tier1: leads.filter((l) => l.icpAlignmentScore >= 80),
-      tier2: leads.filter((l) => l.icpAlignmentScore >= 60 && l.icpAlignmentScore < 80),
-      tier3: leads.filter((l) => l.icpAlignmentScore >= 40 && l.icpAlignmentScore < 60),
-      tier4: leads.filter((l) => l.icpAlignmentScore < 40),
-    };
+    return { tier1, tier2, tier3, tier4 };
   }
 }
